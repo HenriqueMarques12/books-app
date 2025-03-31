@@ -17,7 +17,8 @@ export class BookService {
     }
   }
 
-  getRelatedBooks(_book: Book): Book[] {
+  getRelatedBooks(book: Book): Book[] {
+    console.log("Fetching related books for:", book.title);
     return [];
   }
 }
