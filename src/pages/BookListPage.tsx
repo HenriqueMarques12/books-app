@@ -15,8 +15,7 @@ import Pagination from "../components/common/Pagination";
 
 const BookListPage: React.FC = () => {
   const { genre } = useParams<{ genre: string }>();
-  const { books, genreName, loading, error, fetchBooksByGenre } =
-    useBookStore();
+  const { books, loading, error, fetchBooksByGenre } = useBookStore();
   const { searchTerm } = useSearchStore();
   const [viewMode, setViewMode] = useState<"list" | "card">("list");
   const { pageTransition } = useAnimations();
@@ -58,9 +57,7 @@ const BookListPage: React.FC = () => {
     >
       <header className="mb-6">
         <div className="flex flex-row justify-between md:flex-row items-center mb-6 gap-4">
-          <h1 className="text-3xl  font-bold text-gray-800 mb-2">
-            {genreName}
-          </h1>
+          <h1 className="text-3xl  font-bold text-gray-800 mb-2">{genre}</h1>
           <ToggleView
             view={viewMode}
             setView={setViewMode}

@@ -1,63 +1,71 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { Book } from "../models/Book";
-import booksApi from "../api/booksApi";
+import { bookService } from "../services/BookService";
 
 interface BookState {
   books: Book[];
-  currentGenre: string | null;
-  genreName: string;
+  filteredBooks: Book[];
   loading: boolean;
   error: string | null;
-
+  currentGenre: string | null;
   fetchBooksByGenre: (genreId: string) => Promise<void>;
-  searchBooks: (term: string) => Book[];
+  searchBooks: (term: string) => void;
+  resetBooks: () => void;
 }
 
 export const useBookStore = create<BookState>()(
-  immer((set, get) => ({
+  immer((set) => ({
     books: [],
-    currentGenre: null,
-    genreName: "",
+    filteredBooks: [],
     loading: false,
     error: null,
+    currentGenre: null,
 
     fetchBooksByGenre: async (genreId: string) => {
-      if (get().loading && get().currentGenre === genreId) return;
+      set((state) => {
+        state.loading = true;
+        state.error = null;
+        state.currentGenre = genreId;
+      });
 
       try {
-        set((state) => {
-          state.loading = true;
-          state.error = null;
-          state.currentGenre = genreId;
-          state.genreName = genreId.replace(/-/g, " ");
-        });
-
-        const books = await booksApi.fetchBooksByGenre(genreId);
+        const books = await bookService.fetchBooksByGenre(genreId);
 
         set((state) => {
           state.books = books;
+          state.filteredBooks = books;
           state.loading = false;
         });
       } catch (error) {
         set((state) => {
           state.error =
-            error instanceof Error ? error.message : "Erro desconhecido";
+            error instanceof Error ? error.message : "Erro ao carregar livros";
           state.loading = false;
         });
       }
     },
 
     searchBooks: (term: string) => {
-      const { books } = get();
-      if (!term.trim()) return books;
+      set((state) => {
+        if (!term.trim()) {
+          state.filteredBooks = state.books;
+          return;
+        }
 
-      const lowerTerm = term.toLowerCase();
-      return books.filter(
-        (book) =>
-          book.title.toLowerCase().includes(lowerTerm) ||
-          book.author.toLowerCase().includes(lowerTerm),
-      );
+        const lowerTerm = term.toLowerCase();
+        state.filteredBooks = state.books.filter(
+          (book) =>
+            book.title.toLowerCase().includes(lowerTerm) ||
+            book.author.toLowerCase().includes(lowerTerm),
+        );
+      });
+    },
+
+    resetBooks: () => {
+      set((state) => {
+        state.filteredBooks = state.books;
+      });
     },
   })),
 );

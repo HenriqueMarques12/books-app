@@ -1,26 +1,49 @@
-import booksApi from "../api/booksApi";
+import apiClient from "../api/apiClient";
 import { Book } from "../models/Book";
+import { Genre } from "../models/Genre";
 
-export class BookService {
-  async getBooksByGenre(genreId: string): Promise<Book[]> {
-    const books = await booksApi.fetchBooksByGenre(genreId);
-    return books;
-  }
-
-  async getBookDetails(bookId: string): Promise<Book | null> {
+export const bookService = {
+  async fetchBooksByGenre(genreListName: string): Promise<Book[]> {
     try {
-      const books = await booksApi.fetchBooksByGenre("all");
-      return books.find((book) => book.id === bookId) || null;
+      const response = await apiClient.get<{ results: any }>(
+        `/lists/current/${genreListName}.json`,
+      );
+
+      let books: any[] = [];
+
+      if (response.results.books) {
+        books = response.results.books;
+      } else if (Array.isArray(response.results)) {
+        response.results.forEach((item: any) => {
+          if (item.books && Array.isArray(item.books)) {
+            books = [...books, ...item.books];
+          } else {
+            books.push(item);
+          }
+        });
+      }
+
+      console.log(
+        `Encontrados ${books.length} livros para o gênero ${genreListName}`,
+      );
+
+      return books.map((book: any) => Book.fromApiData(book));
     } catch (error) {
-      console.error("Error fetching book details:", error);
-      return null;
+      console.error(`Erro ao buscar livros do gênero ${genreListName}:`, error);
+      return [];
     }
-  }
+  },
 
-  getRelatedBooks(book: Book): Book[] {
-    console.log("Fetching related books for:", book.title);
+  async searchBooks(term: string, genre?: Genre): Promise<Book[]> {
+    if (genre) {
+      const books = await this.fetchBooksByGenre(genre.name);
+      return books.filter(
+        (book) =>
+          book.title.toLowerCase().includes(term.toLowerCase()) ||
+          book.author.toLowerCase().includes(term.toLowerCase()),
+      );
+    }
+
     return [];
-  }
-}
-
-export default new BookService();
+  },
+};

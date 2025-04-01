@@ -1,47 +1,64 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import booksApi from "../api/booksApi";
 import { Genre } from "../models/Genre";
+import { genreService } from "../services/genreService";
 
 interface GenreState {
   genres: Genre[];
+  filteredGenres: Genre[];
   loading: boolean;
   error: string | null;
-
   fetchGenres: () => Promise<void>;
-  searchGenres: (term: string) => Genre[];
+  searchGenres: (term: string) => void;
+  resetGenres: () => void;
 }
 
 export const useGenreStore = create<GenreState>()(
-  immer((set, get) => ({
+  immer((set) => ({
     genres: [],
+    filteredGenres: [],
     loading: false,
     error: null,
 
     fetchGenres: async () => {
+      set({ loading: true, error: null });
       try {
-        set({ loading: true, error: null });
-        const genres = await booksApi.fetchGenres();
+        const genres = await genreService.fetchGenres();
         set((state) => {
           state.genres = genres;
+          state.filteredGenres = genres;
           state.loading = false;
         });
       } catch (error) {
         set((state) => {
           state.error =
-            error instanceof Error ? error.message : "Erro desconhecido";
+            error instanceof Error ? error.message : "Erro ao carregar gêneros";
           state.loading = false;
         });
       }
     },
 
     searchGenres: (term: string) => {
-      const { genres } = get();
-      if (!term.trim()) return genres;
+      set((state) => {
+        if (!term.trim()) {
+          state.filteredGenres = state.genres;
+          return;
+        }
 
-      return genres.filter((genre) =>
-        genre.displayName.toLowerCase().includes(term.toLowerCase()),
-      );
+        const lowerTerm = term.toLowerCase();
+        state.filteredGenres = state.genres.filter(
+          (genre) =>
+            genre.name.toLowerCase().includes(lowerTerm) ||
+            (genre.description &&
+              genre.description.toLowerCase().includes(lowerTerm)),
+        );
+      });
+    },
+
+    resetGenres: () => {
+      set((state) => {
+        state.filteredGenres = state.genres;
+      });
     },
   })),
 );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -7,46 +7,32 @@ import {
   FaSearch,
   FaTimes,
   FaHome,
-  FaChevronDown,
+  FaUndoAlt,
 } from "react-icons/fa";
 import { useFavoriteStore } from "../../store/favoriteStore";
-import { useSearchStore } from "../../store/searchStore";
+import { useHeaderSearch } from "../../hooks/useHeaderSearch";
 
 const Navbar: React.FC = () => {
   const { favorites } = useFavoriteStore();
-  const { searchTerm, setSearchTerm } = useSearchStore();
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [inputValue, setInputValue] = useState(searchTerm);
+  const {
+    inputValue,
+    setInputValue,
+    searchOpen,
+    setSearchOpen,
+    handleSearch,
+    handleClearSearch,
+    getSearchPlaceholder,
+  } = useHeaderSearch();
+
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
-  const getCurrentSearchContext = () => {
-    if (location.pathname.includes("/genero/")) {
-      return "books";
-    }
-    return "genres";
-  };
-
-  useEffect(() => {
-    setInputValue(searchTerm);
-  }, [searchTerm]);
-
-  useEffect(() => {
+  React.useEffect(() => {
     setMobileMenuOpen(false);
-  }, [location.pathname]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputValue.trim()) {
-      setSearchTerm(inputValue);
-
-      if (window.innerWidth >= 768) {
-        setSearchOpen(false);
-      }
-    }
-  };
+    setSearchOpen(false);
+  }, [location.pathname, setSearchOpen]);
 
   const navLinks = [
     { path: "/", label: "Início", icon: <FaHome /> },
@@ -57,6 +43,41 @@ const Navbar: React.FC = () => {
       count: favorites.length,
     },
   ];
+
+  const renderSearchInput = (isMobile: boolean) => (
+    <form
+      onSubmit={handleSearch}
+      className={`relative ${isMobile ? "w-full" : ""}`}
+    >
+      <input
+        type="text"
+        value={inputValue}
+        onChange={(e) => setInputValue(e.target.value)}
+        placeholder={getSearchPlaceholder()}
+        className="w-full pl-10 pr-8 py-1.5 text-gray-800 bg-white rounded-full focus:outline-none"
+        autoFocus
+      />
+      <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+      {inputValue && (
+        <button
+          type="button"
+          onClick={handleClearSearch}
+          className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          aria-label="Limpar pesquisa"
+        >
+          <FaUndoAlt />
+        </button>
+      )}
+      <button
+        type="button"
+        onClick={() => setSearchOpen(false)}
+        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+        aria-label="Fechar pesquisa"
+      >
+        <FaTimes />
+      </button>
+    </form>
+  );
 
   return (
     <>
@@ -83,35 +104,18 @@ const Navbar: React.FC = () => {
                 </motion.span>
               </Link>
 
-              <div className="hidden md:flex items-center space-x-1">
+              <div className="hidden md:flex items-center space-x-4">
                 <AnimatePresence mode="wait">
                   {searchOpen ? (
-                    <motion.form
+                    <motion.div
                       key="search-form"
                       initial={{ width: 0, opacity: 0 }}
                       animate={{ width: 300, opacity: 1 }}
                       exit={{ width: 0, opacity: 0 }}
                       className="relative"
-                      onSubmit={handleSearch}
                     >
-                      <input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        placeholder={`Pesquisar ${getCurrentSearchContext() === "books" ? "livros" : "gêneros"}...`}
-                        className="w-full pl-10 pr-8 py-1.5 text-gray-800 bg-white rounded-full focus:outline-none"
-                        autoFocus
-                      />
-                      <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                      <button
-                        type="button"
-                        onClick={() => setSearchOpen(false)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        aria-label="Fechar pesquisa"
-                      >
-                        <FaTimes />
-                      </button>
-                    </motion.form>
+                      {renderSearchInput(false)}
+                    </motion.div>
                   ) : (
                     <motion.button
                       key="search-button"
@@ -126,7 +130,7 @@ const Navbar: React.FC = () => {
                   )}
                 </AnimatePresence>
 
-                <div className="ml-4 flex items-center space-x-1">
+                <div className="flex items-center space-x-2">
                   {navLinks.map((link) => (
                     <Link
                       key={link.path}
@@ -169,6 +173,7 @@ const Navbar: React.FC = () => {
                 >
                   {searchOpen ? <FaTimes /> : <FaSearch />}
                 </button>
+
                 <button
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                   className="p-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50"
@@ -188,24 +193,7 @@ const Navbar: React.FC = () => {
                   exit={{ height: 0, opacity: 0 }}
                   className="md:hidden pb-3"
                 >
-                  <form onSubmit={handleSearch} className="relative">
-                    <input
-                      type="text"
-                      value={inputValue}
-                      onChange={(e) => setInputValue(e.target.value)}
-                      placeholder={`Pesquisar ${getCurrentSearchContext() === "books" ? "livros" : "gêneros"}...`}
-                      className="w-full pl-10 pr-4 py-2 text-gray-800 bg-white rounded-full focus:outline-none"
-                      autoFocus
-                    />
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
-                    <button
-                      type="submit"
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600"
-                      aria-label="Pesquisar"
-                    >
-                      <FaChevronDown className="transform -rotate-90" />
-                    </button>
-                  </form>
+                  {renderSearchInput(true)}
                 </motion.div>
               )}
             </AnimatePresence>
