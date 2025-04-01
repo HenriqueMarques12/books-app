@@ -56,7 +56,7 @@ const BookListPage: React.FC = () => {
       tabIndex={-1}
     >
       <header className="mb-6">
-        <div className="flex flex-row justify-between md:flex-row items-center mb-6 gap-4">
+        <div className="flex flex-col justify-between md:flex-row items-center mb-6 gap-4">
           <h1 className="text-3xl  font-bold text-gray-800 mb-2">{genre}</h1>
           <ToggleView
             view={viewMode}
